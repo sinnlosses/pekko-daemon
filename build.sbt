@@ -17,6 +17,30 @@ lazy val `root` = (project in file("."))
     daemon
   )
 
+lazy val application = (project in file("application"))
+  .settings(baseSettings)
+  .settings(noPublish)
+  .settings(
+    libraryDependencies ++= Dependencies.bundle.pekko
+  )
+
+lazy val adapter = (project in file("adapter"))
+  .settings(baseSettings)
+  .settings(noPublish)
+  .settings(
+    libraryDependencies ++= Dependencies.finagleInjectCore
+  )
+  .dependsOn(application)
+
+lazy val logging = (project in file("logging"))
+  .settings(baseSettings)
+  .settings(noPublish)
+  .settings(
+    libraryDependencies ++= Seq(Dependencies.logback, Dependencies.logstashLogbackEncoder)
+  )
+
 lazy val daemon = (project in file("entry-point/daemon"))
   .settings(baseSettings)
   .settings(libraryDependencies ++= Dependencies.finatraApp)
+  .dependsOn(adapter % "test->test;compile->compile")
+  .dependsOn(logging % "test->test;compile->compile")
