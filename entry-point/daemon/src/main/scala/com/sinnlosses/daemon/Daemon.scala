@@ -85,18 +85,11 @@ class Daemon extends com.twitter.inject.app.App {
 
   private def mainAsSubSource[T, E](mainFlow: Flow[NotUsed, Either[E, T], NotUsed])
       : Graph[SourceShape[Either[E, T]], concurrent.Future[Done]] = {
-    GraphDSL.createGraph(Sink.ignore) {
-      implicit builder => _ =>
-        import GraphDSL.Implicits._
-
-        val toConsumer = builder.add(Flow[Either[E, T]])
-
-        // format: off
-        Source.single(NotUsed) ~> mainFlow ~> toConsumer
-        // format: on
-
-        SourceShape(toConsumer.out)
-    }
+    // サブソース自身の完了を materialized value として返す
+    Source
+      .single(NotUsed)
+      .via(mainFlow)
+      .watchTermination()(Keep.right)
   }
 
   private def makeGraph[E <: Throwable, T](source: Source[Either[E, T], UniqueKillSwitch])
