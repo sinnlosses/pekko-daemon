@@ -1,6 +1,6 @@
 package com.sinnlosses.daemon
 
-import com.twitter.util.{Future, Promise}
+import com.twitter.util.{Await, Future, Promise}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream._
 import org.apache.pekko.stream.scaladsl._
@@ -13,17 +13,20 @@ import scala.util.{Failure, Success}
 class Daemon extends com.twitter.inject.app.App {
 
   override def run(): Unit = {
+    implicit val system: ActorSystem = ActorSystem("QuickStart")
     val future = handleSubCommand()
+
+    Await.result(future)
   }
 
   private def handleSubCommand()(implicit actorSystem: ActorSystem): Future[Unit] = {
     val graph = makeGraph(subCommand())
+    runGraph(graph)
   }
 
   private def subCommand()(implicit
       actorSystem: ActorSystem
   ): Source[Either[Throwable, Unit], UniqueKillSwitch] = {
-    import actorSystem.dispatcher
 
     def mainFlow(): Flow[NotUsed, Either[Throwable, Unit], NotUsed] = {
       Flow[NotUsed].flatMapConcat { _ =>
