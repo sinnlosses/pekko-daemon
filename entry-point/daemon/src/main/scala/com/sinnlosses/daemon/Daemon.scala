@@ -1,14 +1,18 @@
 package com.sinnlosses.daemon
 
-import com.twitter.util.{Await, Future, Promise}
+import com.twitter.util.Await
+import com.twitter.util.Future
+import com.twitter.util.Promise
+import org.apache.pekko.Done
+import org.apache.pekko.NotUsed
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream._
 import org.apache.pekko.stream.scaladsl._
-import org.apache.pekko.{Done, NotUsed}
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+import scala.util.Failure
+import scala.util.Success
 
 class Daemon extends com.twitter.inject.app.App {
 
@@ -51,7 +55,15 @@ class Daemon extends com.twitter.inject.app.App {
           val concat = builder.add(Concat[NotUsed]())
           val (queue, source) = Source.queue[NotUsed](1, OverflowStrategy.fail).preMaterialize()
 
-          val ticker = ???
+          val ticker = builder.add(
+            Flow[NotUsed]
+              .throttle(
+                elements = 1,
+                per = 5.seconds,
+                maximumBurst = 1,
+                mode = ThrottleMode.Shaping
+              )
+          )
 
           val main = builder.add(Flow[NotUsed].flatMapConcat { _ =>
             mainAsSubSource(mainFlow)
